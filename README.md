@@ -7,4 +7,4 @@
    </ul>
 <h1>內容展示</h1>
 <h4>選擇區域即可觀看其景點</h4>
-<img src="kaohsiungtravel.png">
+<img src="kaohsiungtravel.png" width="500px">
