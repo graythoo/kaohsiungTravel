@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高雄好好行</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/myall.css">
+    <link rel="stylesheet" href="css/all.min.css">
+    <style>
+        .banner {
+            background-image: url("https://khh.travel/Content/images/static/static-banner-03.jpg");
+            height: 360px;
+            background-position: center center;
+            border-style: cover;
+        }
+
+        .bg-cover {
+            height: 180px;
+            background-position: center center;
+            background-size: cover;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="banner">
+            <div class="display-1 fw-900 text-white p-5">
+                {{ title }}
+            </div>
+        </div>
+        <div class="container">
+            <div class="row justify-content-center" style="margin-top: -20px;">
+                <div class="col-md-6">
+                    <select class="form-select form-control" v-model="currentLocation" @change="updateCurrentPage">
+                        <option disabled selected>--全部--</option>
+                        <option :value="item" v-for="(item,index) in regions">
+                            {{ item }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mt-3" v-for="(item,index) in filterData[currentPage]" :key="index">
+                    <!-- 設成h-100能與其他元素等高 -->
+                    <div class="card h-100">
+                        <!-- <div class="bg-cover rounded-top" style="background-image: url(https://khh.travel/content/images/Attractions/25/640x480_ck9a0454_6262.jpg);"></div> -->
+
+                        <!-- 在Vue裡面的常數是不允許有-連接的符號的，因此為此必須要改成backgroundImage，Vue本身才看得懂<然後在其之外一定要加上{}，這裡的url()就變成字串連接因此要加上''引號 -->
+                        <div class="bg-cover rounded-top" :style="{backgroundImage: 'url('+item.Picture1 +')'}"></div>
+                        <div class="card-body">
+                            <div class="fs-5">
+                                <i class="fa-solid fa-house text-danger me-2"></i>景點名稱:{{item.Name}}
+                            </div>
+                            <div class="fs-5">
+                                <i class="fa-solid fa-clock text-secondary me-2"></i>營業時間:{{item.Opentime}}
+                            </div>
+                            <div class="fs-5">
+                                <i class="fa-solid fa-location-dot text-success me-2"></i>地址:{{item.Add}}
+                            </div>
+                            <div class="fs-5">
+                                <i class="fa-brands fa-telegram text-warning me-2"></i>電話:{{item.Tel}}
+                            </div>
+                            <div class="fs-5" v-if="item.Ticketinfo">
+                                <i class="fa-solid fa-bag-shopping text-primary me-2"></i>收費方式:{{item.Ticketinfo}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row my-4">
+                <div class="col-md-12">
+                    <nav aria-label="Page navigation example">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item" v-if="currentPage > 0">
+                                <a class="page-link" href="#" aria-label="Previous" @click.prevent="currentPage = currentPage-1">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item" :class="{ 'active' : currentPage == item-1 }" v-for="(item, index) in filterData.length">
+                                <a class="page-link" href="#" @click.prevent="currentPage = item-1">{{item}}</a>
+                            </li>
+                            <li class="page-item" v-if="currentPage < lastPage">
+                                <a class="page-link" href="#" aria-label="Next" @click.prevent="currentPage = currentPage+1">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+    <script>
+        var App = {
+            data() {
+                return {
+                    title: "高雄好好行",
+                    mydata: [],
+                    numOfpage: 15,//設定一頁有15筆資料
+                    currentPage: 0,
+                    regions: [], //紀錄區域名稱
+                    currentLocation: '',
+                }
+            },
+            //一剛開始就要建立
+            created() {
+                var vm = this;
+                var url = 'https://api.kcg.gov.tw/api/service/get/9c8e1450-e833-499c-8320-29b36b7ace5c';
+                axios.get(url)
+                    .then(function (response) {
+                        // handle success
+                        console.log(response.data.data.XML_Head.Infos.Info);
+                        vm.mydata = response.data.data.XML_Head.Infos.Info;
+                        vm.getRegion();
+                    })
+                    .catch(function (error) {
+                        // handle error
+                        console.log(error);
+                    })
+                    .finally(function () {
+                        // always executed
+                    });
+            },
+            computed: {
+                filterData() {
+                    //過濾mydata 330資料
+                    //[[0~29],[30~59],[60~99]...,[299~329]]
+                    var vm = this;
+                    var items = [];//收集每一區的旅遊資料
+                    if (vm.currentLocation != '') {
+                        //filter是過濾資料用的;(item,index)=>{}是箭頭函式
+                        items = vm.mydata.filter((item, index) => {
+                            return item.Add.substring(3, 9) == vm.currentLocation; 
+                        });
+                    } else {
+                        items = vm.mydata;
+                        
+                    }
+                      
+                    var newData = [];
+                    items.forEach(function (item, key) {
+                        //先畫二維陣列格子
+                        if (key % vm.numOfpage == 0) {
+                            newData.push([]);
+                        }
+                        //資料擺入陣列
+                        var page = parseInt(key / vm.numOfpage);
+                        newData[page].push(item);
+                    });
+                    return newData;
+                },
+                lastPage() {
+                    return this.filterData.length-1;
+                }
+            },
+            methods: {
+                getRegion() {
+                    var vm = this;
+                    var regions = new Set();//讓網子來過濾資料
+                   
+                    vm.mydata.forEach((item, index) => {
+                        //substring擷取字串(第一個字起始位,最後一個字結束位)
+                        regions.add(item.Add.substring(3, 9));
+                    });
+                    vm.regions = Array.from(regions);
+                },
+                //另外要在寫個method讓currentPage歸零
+                updateCurrentPage() {
+                    this.currentPage = 0;
+                },
+            },
+        };
+        Vue.createApp(App).mount('#app');
+    </script>
+</body>
+
+</html>
